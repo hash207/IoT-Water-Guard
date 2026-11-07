@@ -1,8 +1,8 @@
-# FlowGuard 💧
+# IoT-Water-Guard 💧
 
 **Smart IoT Water Management & Pump Automation System**
 
-FlowGuard is a full-stack Internet of Things (IoT) solution designed to monitor municipal water flow, track water tank levels, and remotely control water pumps. Built with an ESP8266 microcontroller and a Flask backend, the system ensures real-time data visualization and hardware automation through the MQTT protocol.
+IoT-Water-Guard is a full-stack Internet of Things (IoT) solution designed to monitor municipal water flow, track water tank levels, and remotely control water pumps. Built with an ESP8266 microcontroller and a Flask backend, the system ensures real-time data visualization and hardware automation through the MQTT protocol.
 
 ## ✨ Key Features
 
@@ -54,8 +54,8 @@ FlowGuard is a full-stack Internet of Things (IoT) solution designed to monitor 
 ### 1. Backend Server Setup
 Clone the repository and set up the Python environment:
 ```bash
-git clone [https://github.com/YOUR_USERNAME/FlowGuard.git](https://github.com/YOUR_USERNAME/FlowGuard.git)
-cd FlowGuard
+git clone https://github.com/hash207/IoT-Water-Guard.git
+cd IoT-Water-Guard
 python -m venv water_venv
 
 ```
@@ -65,11 +65,11 @@ Activate the virtual environment:
 * **Windows:** `water_venv\Scripts\activate`
 * **Linux/Mac:** `source water_venv/bin/activate`
 
-Install dependencies and start the server:
+Install dependencies from `requirements.txt` and start the server:
 
 ```bash
-pip install Flask Flask-SQLAlchemy paho-mqtt
-python app.py
+pip install -r requirements.txt
+python main.py
 
 ```
 
