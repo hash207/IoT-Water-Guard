@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Smart Water Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <!-- مكتبة Chart.js للرسوم البيانية -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
+
+    <!-- Navbar -->
+    <nav class="bg-blue-600 dark:bg-blue-800 text-white shadow-lg transition-colors duration-300">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-xl md:text-2xl font-bold flex items-center">
+                <i class="fa-solid fa-droplet mx-2"></i> <span id="nav-title">Smart Water Management</span>
+            </h1>
+            
+            <div class="flex items-center space-x-4 space-x-reverse" id="nav-controls">
+                <button onclick="toggleLanguage()" class="bg-blue-500 dark:bg-blue-700 hover:bg-blue-400 px-3 py-1 rounded text-sm font-semibold transition shadow">
+                    <span id="lang-btn">عربي</span>
+                </button>
+                <button onclick="toggleDarkMode()" class="bg-blue-500 dark:bg-blue-700 hover:bg-blue-400 px-3 py-1 rounded text-sm transition shadow">
+                    <i class="fa-solid fa-moon" id="theme-icon"></i>
+                </button>
+                
+                <span id="connection-status" class="bg-blue-800 dark:bg-blue-900 px-3 py-1 rounded-full text-sm flex items-center shadow hidden md:flex">
+                    <span class="w-2 h-2 rounded-full bg-red-500 mx-2 animate-pulse" id="status-dot"></span>
+                    <span id="status-text">Connecting...</span>
+                </span>
+            </div>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="max-w-6xl mx-auto px-4 flex space-x-2 space-x-reverse mt-2" id="tabs-container">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-2 bg-white/20 rounded-t-lg font-semibold border-b-4 border-white transition">Dashboard</button>
+            <button onclick="switchTab('history')" id="tab-history" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-t-lg font-semibold border-b-4 border-transparent transition">Weekly History</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        
+        <!-- View 1: Dashboard -->
+        <div id="dashboard-view" class="grid grid-cols-1 md:grid-cols-3 gap-6 block">
+            
+            <!-- Tank Level Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-t-4 border-blue-500 relative overflow-hidden transition-colors duration-300">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 font-semibold mb-1" id="card1-title">Tank Level (Distance)</p>
+                        <h2 class="text-4xl font-bold text-slate-700 dark:text-slate-200" id="distance-val">-- <span class="text-lg font-normal text-slate-400" id="unit-cm">cm</span></h2>
+                    </div>
+                    <div class="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-lg">
+                        <i class="fa-solid fa-water text-2xl text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-4">
+                        <div class="bg-gradient-to-r from-blue-400 to-blue-600 h-4 rounded-full transition-all duration-500 w-0" id="level-bar"></div>
+                    </div>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-2" id="last-update-level">--</p>
+                </div>
+            </div>
+
+            <!-- Flow Rate Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-t-4 border-emerald-500 relative overflow-hidden transition-colors duration-300">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 font-semibold mb-1" id="card2-title">Municipal Water (Flow)</p>
+                        <h2 class="text-4xl font-bold text-slate-700 dark:text-slate-200" id="flow-val">-- <span class="text-lg font-normal text-slate-400" id="unit-lmin">L/min</span></h2>
+                    </div>
+                    <div class="bg-emerald-100 dark:bg-emerald-900/50 p-3 rounded-lg">
+                        <i class="fa-solid fa-faucet-drip text-2xl text-emerald-600 dark:text-emerald-400"></i>
+                    </div>
+                </div>
+                <div class="mt-6 flex items-center">
+                    <span class="flex h-3 w-3 relative mx-2">
+                        <span id="flow-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 hidden"></span>
+                        <span id="flow-dot" class="relative inline-flex rounded-full h-3 w-3 bg-slate-300 dark:bg-slate-600"></span>
+                    </span>
+                    <span id="flow-status" class="text-sm font-semibold text-slate-500 dark:text-slate-400">Stopped</span>
+                </div>
+            </div>
+
+            <!-- Pump Control Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-t-4 border-orange-500 relative overflow-hidden transition-colors duration-300">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 font-semibold mb-1" id="card3-title">Pump Control</p>
+                        <h2 class="text-xl font-bold text-slate-700 dark:text-slate-200"><span id="pump-status-label">Status:</span> <span id="pump-state" class="text-slate-400">OFF</span></h2>
+                    </div>
+                    <div class="bg-orange-100 dark:bg-orange-900/50 p-3 rounded-lg">
+                        <i class="fa-solid fa-power-off text-2xl text-orange-600 dark:text-orange-400"></i>
+                    </div>
+                </div>
+                <div class="flex gap-2 w-full">
+                    <button onclick="controlPump('ON')" id="btn-start" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded transition shadow">Start</button>
+                    <button onclick="controlPump('OFF')" id="btn-stop" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition shadow">Stop</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- View 2: Weekly History -->
+        <div id="history-view" class="hidden grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Level Chart -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-t-4 border-blue-500 transition-colors duration-300">
+                <h3 class="text-lg font-bold text-slate-700 dark:text-slate-200 mb-4" id="chart1-title">Water Level - Last 7 Days</h3>
+                <!-- أضفنا حاوية (div) ذات ارتفاع ثابت 300px لتقييد الرسم البياني -->
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="levelChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Flow Chart -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-t-4 border-emerald-500 transition-colors duration-300">
+                <h3 class="text-lg font-bold text-slate-700 dark:text-slate-200 mb-4" id="chart2-title">Total Flow - Last 7 Days (Liters)</h3>
+                <!-- أضفنا نفس الحاوية هنا أيضاً -->
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="flowChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // --- UI & Language State ---
+        let currentLang = 'en';
+        let isFlowing = false;
+        let isMqttConnected = false;
+        let hasMqttError = false;
+        let pumpStatus = 'OFF';
+
+        const translations = {
+            en: {
+                navTitle: "Smart Water Management",
+                tabDashboard: "Dashboard",
+                tabHistory: "Weekly History",
+                card1Title: "Tank Level (Distance)",
+                card2Title: "Municipal Water (Flow)",
+                card3Title: "Pump Control",
+                chart1Title: "Water Level - Last 7 Days (%)",
+                chart2Title: "Total Flow - Last 7 Days (Liters)",
+                unitCm: "cm",
+                unitLmin: "L/min",
+                statusStopped: "Stopped",
+                statusFlowing: "Flowing...",
+                statusConnecting: "Connecting...",
+                statusConnected: "Connected",
+                statusError: "Connection Error",
+                pumpStatusLabel: "Status:",
+                pumpOn: "ON",
+                pumpOff: "OFF",
+                btnStart: "Start",
+                btnStop: "Stop",
+                langBtn: "عربي",
+                days: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+            },
+            ar: {
+                navTitle: "الإدارة الذكية للمياه",
+                tabDashboard: "لوحة التحكم",
+                tabHistory: "سجل الأسبوع",
+                card1Title: "مستوى الخزان (المسافة)",
+                card2Title: "مياه البلدية (معدل التدفق)",
+                card3Title: "التحكم بالمضخة",
+                chart1Title: "مستوى المياه - آخر 7 أيام (%)",
+                chart2Title: "إجمالي التدفق - آخر 7 أيام (لتر)",
+                unitCm: "سم",
+                unitLmin: "لتر/دقيقة",
+                statusStopped: "متوقف",
+                statusFlowing: "جاري الضخ...",
+                statusConnecting: "جاري الاتصال...",
+                statusConnected: "متصل بالخادم",
+                statusError: "فشل الاتصال",
+                pumpStatusLabel: "الحالة:",
+                pumpOn: "مُشغل",
+                pumpOff: "مُتوقف",
+                btnStart: "تشغيل",
+                btnStop: "إيقاف",
+                langBtn: "EN",
+                days: ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"]
+            }
+        };
+
+        // --- Functions ---
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const icon = document.getElementById('theme-icon');
+            icon.classList.toggle('fa-moon');
+            icon.classList.toggle('fa-sun');
+            updateChartsTheme();
+        }
+
+        function switchTab(tabId) {
+            const dashboard = document.getElementById('dashboard-view');
+            const history = document.getElementById('history-view');
+            const btnDash = document.getElementById('tab-dashboard');
+            const btnHist = document.getElementById('tab-history');
+
+            if(tabId === 'dashboard') {
+                dashboard.classList.replace('hidden', 'grid');
+                history.classList.replace('grid', 'hidden');
+                btnDash.classList.replace('border-transparent', 'border-white');
+                btnDash.classList.replace('bg-white/10', 'bg-white/20');
+                btnHist.classList.replace('border-white', 'border-transparent');
+                btnHist.classList.replace('bg-white/20', 'bg-white/10');
+            } else {
+                dashboard.classList.replace('grid', 'hidden');
+                history.classList.replace('hidden', 'grid');
+                btnHist.classList.replace('border-transparent', 'border-white');
+                btnHist.classList.replace('bg-white/10', 'bg-white/20');
+                btnDash.classList.replace('border-white', 'border-transparent');
+                btnDash.classList.replace('bg-white/20', 'bg-white/10');
+            }
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'ar' : 'en';
+            const t = translations[currentLang];
+            
+            document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+            document.documentElement.lang = currentLang;
+            
+            const navControls = document.getElementById('nav-controls');
+            const tabsContainer = document.getElementById('tabs-container');
+            if(currentLang === 'ar') {
+                navControls.classList.add('space-x-reverse');
+                tabsContainer.classList.add('space-x-reverse');
+            } else {
+                navControls.classList.remove('space-x-reverse');
+                tabsContainer.classList.remove('space-x-reverse');
+            }
+
+            // Update DOM Texts
+            document.getElementById('nav-title').innerText = t.navTitle;
+            document.getElementById('page-title').innerText = t.navTitle;
+            document.getElementById('tab-dashboard').innerText = t.tabDashboard;
+            document.getElementById('tab-history').innerText = t.tabHistory;
+            document.getElementById('card1-title').innerText = t.card1Title;
+            document.getElementById('card2-title').innerText = t.card2Title;
+            document.getElementById('card3-title').innerText = t.card3Title;
+            document.getElementById('chart1-title').innerText = t.chart1Title;
+            document.getElementById('chart2-title').innerText = t.chart2Title;
+            document.getElementById('pump-status-label').innerText = t.pumpStatusLabel;
+            document.getElementById('btn-start').innerText = t.btnStart;
+            document.getElementById('btn-stop').innerText = t.btnStop;
+            document.getElementById('langBtn').innerText = t.langBtn;
+            
+            // Dynamic State Texts
+            document.getElementById('flow-status').innerText = isFlowing ? t.statusFlowing : t.statusStopped;
+            document.getElementById('pump-state').innerText = pumpStatus === 'ON' ? t.pumpOn : t.pumpOff;
+            
+            if (hasMqttError) document.getElementById('status-text').innerText = t.statusError;
+            else if (isMqttConnected) document.getElementById('status-text').innerText = t.statusConnected;
+            else document.getElementById('status-text').innerText = t.statusConnecting;
+
+            if(document.getElementById('distance-val').innerText.includes('--')) {
+                document.getElementById('distance-val').innerHTML = `-- <span class="text-lg font-normal text-slate-400" id="unit-cm">${t.unitCm}</span>`;
+            }
+            if(document.getElementById('flow-val').innerText.includes('--')) {
+                document.getElementById('flow-val').innerHTML = `-- <span class="text-lg font-normal text-slate-400" id="unit-lmin">${t.unitLmin}</span>`;
+            }
+
+            // Update Chart Labels
+            levelChartConfig.data.labels = t.days;
+            flowChartConfig.data.labels = t.days;
+            levelChartConfig.update();
+            flowChartConfig.update();
+        }
+
+        // --- Charts Setup (Dummy Data) ---
+        Chart.defaults.color = '#94a3b8'; // Tailwind slate-400
+        Chart.defaults.font.family = 'system-ui, sans-serif';
+
+        const levelCtx = document.getElementById('levelChart').getContext('2d');
+        const flowCtx = document.getElementById('flowChart').getContext('2d');
+
+        const levelChartConfig = new Chart(levelCtx, {
+            type: 'line',
+            data: {
+                labels: translations[currentLang].days,
+                datasets: [{
+                    label: 'Water Level %',
+                    data: [40, 60, 55, 90, 85, 30, 70],
+                    borderColor: '#3b82f6', // blue-500
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } } }
+        });
+
+        const flowChartConfig = new Chart(flowCtx, {
+            type: 'bar',
+            data: {
+                labels: translations[currentLang].days,
+                datasets: [{
+                    label: 'Total Flow (Liters)',
+                    data: [0, 1500, 0, 2200, 500, 0, 1800],
+                    backgroundColor: '#10b981', // emerald-500
+                    borderRadius: 4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        });
+
+        function updateChartsTheme() {
+            const isDark = document.documentElement.classList.contains('dark');
+            Chart.defaults.color = isDark ? '#cbd5e1' : '#64748b';
+            levelChartConfig.update();
+            flowChartConfig.update();
+        }
+
+        // --- MQTT Setup ---
+        const brokerUrl = 'ws://broker.emqx.io:8083/mqtt';
+        const topicData = 'hash/waterstatus';
+        const topicCommand = 'hash/pumpcontrol';
+        const client = mqtt.connect(brokerUrl);
+
+        client.on('connect', () => {
+            isMqttConnected = true;
+            hasMqttError = false;
+            document.getElementById('status-text').innerText = translations[currentLang].statusConnected;
+            document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-emerald-400 mx-2";
+            client.subscribe(topicData);
+        });
+
+        client.on('message', (topic, message) => {
+            if (topic === topicData) {
+                try {
+                    const data = JSON.parse(message.toString());
+                    const t = translations[currentLang];
+                    
+                    if(data.distance !== undefined) {
+                        document.getElementById('distance-val').innerHTML = `${data.distance.toFixed(1)} <span class="text-lg font-normal text-slate-400" id="unit-cm">${t.unitCm}</span>`;
+                        document.getElementById('last-update-level').innerText = new Date().toLocaleTimeString();
+                        const percent = Math.max(0, Math.min(100, (50 - data.distance) * 2)); 
+                        document.getElementById('level-bar').style.width = percent + '%';
+                    }
+
+                    if(data.flowRate !== undefined) {
+                        document.getElementById('flow-val').innerHTML = `${data.flowRate.toFixed(1)} <span class="text-lg font-normal text-slate-400" id="unit-lmin">${t.unitLmin}</span>`;
+                        const statusEl = document.getElementById('flow-status');
+                        const dotEl = document.getElementById('flow-dot');
+                        const pingEl = document.getElementById('flow-ping');
+
+                        if(data.flowRate > 0) {
+                            isFlowing = true;
+                            statusEl.innerText = t.statusFlowing;
+                            statusEl.className = "text-sm font-semibold text-emerald-600 dark:text-emerald-400";
+                            dotEl.className = "relative inline-flex rounded-full h-3 w-3 bg-emerald-500";
+                            pingEl.classList.remove('hidden');
+                        } else {
+                            isFlowing = false;
+                            statusEl.innerText = t.statusStopped;
+                            statusEl.className = "text-sm font-semibold text-slate-500 dark:text-slate-400";
+                            dotEl.className = "relative inline-flex rounded-full h-3 w-3 bg-slate-300 dark:bg-slate-600";
+                            pingEl.classList.add('hidden');
+                        }
+                    }
+                } catch (e) {
+                    console.error("JSON Error: ", e);
+                }
+            }
+        });
+
+        client.on('error', (err) => {
+            isMqttConnected = false;
+            hasMqttError = true;
+            document.getElementById('status-text').innerText = translations[currentLang].statusError;
+            document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-red-500 mx-2 animate-pulse";
+        });
+
+        // --- Pump Control Publish ---
+        function controlPump(state) {
+            pumpStatus = state;
+            const t = translations[currentLang];
+            
+            // Publish the command to MQTT
+            if(client.connected) {
+                client.publish(topicCommand, state);
+            }
+
+            // Update UI
+            const stateEl = document.getElementById('pump-state');
+            stateEl.innerText = state === 'ON' ? t.pumpOn : t.pumpOff;
+            stateEl.className = state === 'ON' ? "text-emerald-500 font-bold" : "text-slate-400 font-bold";
+        }
+    </script>
+</body>
+</html>
