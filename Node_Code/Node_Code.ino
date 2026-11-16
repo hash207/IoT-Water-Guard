@@ -22,6 +22,8 @@ volatile uint32_t pulseCount = 0;
 uint32_t previousPulseCount = 0;
 
 float flowRate = 0.0f;
+float lastValidDistance = 0.0f;
+bool hasValidDistance = false;
 
 // G3/4 1–30 L/min sensor: Frequency = 4.5 × flow rate in L/min
 const float calibrationFactor = 4.5f;
@@ -162,10 +164,23 @@ void loop() {
 
     long duration = pulseIn(echoPin, HIGH, 30000);
 
-    float distance = 0.0f;
+    // Only accept non-zero ultrasonic readings.
     if (duration > 0) {
-      distance = duration * 0.034f / 2.0f;
+      float newDistance = duration * 0.034f / 2.0f;
+
+      if (newDistance > 0.0f) {
+        lastValidDistance = newDistance;
+        hasValidDistance = true;
+      }
     }
+
+    // Do not send 0.00 before receiving the first valid measurement.
+    if (!hasValidDistance) {
+      Serial.println("No valid ultrasonic distance yet; MQTT publish skipped.");
+      return;
+    }
+
+    float distance = lastValidDistance;
 
     // Sends flowRate: 0.00 when no water is flowing
     char jsonPayload[64];
