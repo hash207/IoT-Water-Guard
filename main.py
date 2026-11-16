@@ -1,7 +1,7 @@
 import os
 import json
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 import paho.mqtt.client as mqtt
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, render_template, jsonify
@@ -19,7 +19,7 @@ db = SQLAlchemy(app)
 # Database Model
 class WaterRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     distance = db.Column(db.Float, nullable=False)
     flow_rate = db.Column(db.Float, nullable=False)
 
