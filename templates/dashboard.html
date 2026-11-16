@@ -2,7 +2,7 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title">Smart Water Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -17,12 +17,12 @@
 
     <!-- Navbar -->
     <nav class="bg-blue-600 dark:bg-blue-800 text-white shadow-lg transition-colors duration-300">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <h1 class="text-xl md:text-2xl font-bold flex items-center">
-                <i class="fa-solid fa-droplet mx-2"></i> <span id="nav-title">Smart Water Management</span>
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
+            <h1 class="text-xl md:text-2xl font-bold flex items-center justify-center md:justify-start gap-2">
+                <i class="fa-solid fa-droplet"></i> <span id="nav-title">IoT-Water-Guard</span>
             </h1>
             
-            <div class="flex items-center space-x-4 space-x-reverse" id="nav-controls">
+            <div class="flex flex-wrap justify-center items-center gap-4" id="nav-controls">
                 <button onclick="toggleLanguage()" class="bg-blue-500 dark:bg-blue-700 hover:bg-blue-400 px-3 py-1 rounded text-sm font-semibold transition shadow">
                     <span id="lang-btn">عربي</span>
                 </button>
@@ -30,7 +30,7 @@
                     <i class="fa-solid fa-moon" id="theme-icon"></i>
                 </button>
                 
-                <span id="connection-status" class="bg-blue-800 dark:bg-blue-900 px-3 py-1 rounded-full text-sm flex items-center shadow hidden md:flex">
+                <span id="connection-status" class="bg-blue-800 dark:bg-blue-900 px-3 py-1 rounded-full text-sm flex items-center shadow">
                     <span class="w-2 h-2 rounded-full bg-red-500 mx-2 animate-pulse" id="status-dot"></span>
                     <span id="status-text">Connecting...</span>
                 </span>
@@ -38,7 +38,7 @@
         </div>
         
         <!-- Tabs -->
-        <div class="max-w-6xl mx-auto px-4 flex space-x-2 space-x-reverse mt-2" id="tabs-container">
+        <div class="max-w-6xl mx-auto px-4 flex justify-center md:justify-start gap-2 mt-2" id="tabs-container">
             <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-2 bg-white/20 rounded-t-lg font-semibold border-b-4 border-white transition">Dashboard</button>
             <button onclick="switchTab('history')" id="tab-history" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-t-lg font-semibold border-b-4 border-transparent transition">Weekly History</button>
         </div>
@@ -48,10 +48,10 @@
     <div class="max-w-6xl mx-auto px-4 py-8">
         
         <!-- View 1: Dashboard -->
-        <div id="dashboard-view" class="grid grid-cols-1 md:grid-cols-3 gap-6 block">
+        <div id="dashboard-view" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 block">
             
             <!-- Tank Level Card -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-t-4 border-blue-500 relative overflow-hidden transition-colors duration-300">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4 md:p-6 border-t-4 border-blue-500 relative overflow-hidden transition-colors duration-300">
                 <div class="flex justify-between items-start">
                     <div>
                         <p class="text-sm text-slate-500 dark:text-slate-400 font-semibold mb-1" id="card1-title">Tank Level (Distance)</p>
@@ -70,7 +70,7 @@
             </div>
 
             <!-- Flow Rate Card -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-t-4 border-emerald-500 relative overflow-hidden transition-colors duration-300">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4 md:p-6 border-t-4 border-emerald-500 relative overflow-hidden transition-colors duration-300">
                 <div class="flex justify-between items-start">
                     <div>
                         <p class="text-sm text-slate-500 dark:text-slate-400 font-semibold mb-1" id="card2-title">Municipal Water (Flow)</p>
@@ -90,7 +90,7 @@
             </div>
 
             <!-- Pump Control Card -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-t-4 border-orange-500 relative overflow-hidden transition-colors duration-300">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4 md:p-6 border-t-4 border-orange-500 relative overflow-hidden transition-colors duration-300">
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <p class="text-sm text-slate-500 dark:text-slate-400 font-semibold mb-1" id="card3-title">Pump Control</p>
@@ -109,20 +109,18 @@
         </div>
 
         <!-- View 2: Weekly History -->
-        <div id="history-view" class="hidden grid-cols-1 md:grid-cols-2 gap-6">
+        <div id="history-view" class="hidden grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <!-- Level Chart -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-t-4 border-blue-500 transition-colors duration-300">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4 md:p-6 border-t-4 border-blue-500 transition-colors duration-300">
                 <h3 class="text-lg font-bold text-slate-700 dark:text-slate-200 mb-4" id="chart1-title">Water Level - Last 7 Days</h3>
-                <!-- أضفنا حاوية (div) ذات ارتفاع ثابت 300px لتقييد الرسم البياني -->
                 <div style="position: relative; height: 300px; width: 100%;">
                     <canvas id="levelChart"></canvas>
                 </div>
             </div>
             
             <!-- Flow Chart -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-t-4 border-emerald-500 transition-colors duration-300">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4 md:p-6 border-t-4 border-emerald-500 transition-colors duration-300">
                 <h3 class="text-lg font-bold text-slate-700 dark:text-slate-200 mb-4" id="chart2-title">Total Flow - Last 7 Days (Liters)</h3>
-                <!-- أضفنا نفس الحاوية هنا أيضاً -->
                 <div style="position: relative; height: 300px; width: 100%;">
                     <canvas id="flowChart"></canvas>
                 </div>
@@ -142,7 +140,7 @@
 
         const translations = {
             en: {
-                navTitle: "Smart Water Management",
+                navTitle: "IoT-Water-Guard",
                 tabDashboard: "Dashboard",
                 tabHistory: "Weekly History",
                 card1Title: "Tank Level (Distance)",
@@ -232,12 +230,14 @@
             
             const navControls = document.getElementById('nav-controls');
             const tabsContainer = document.getElementById('tabs-container');
+            
+            // Flex direction reverse is not needed when using gap, but kept if you prefer specific ordering
             if(currentLang === 'ar') {
-                navControls.classList.add('space-x-reverse');
-                tabsContainer.classList.add('space-x-reverse');
+                navControls.style.flexDirection = 'row-reverse';
+                tabsContainer.style.flexDirection = 'row-reverse';
             } else {
-                navControls.classList.remove('space-x-reverse');
-                tabsContainer.classList.remove('space-x-reverse');
+                navControls.style.flexDirection = 'row';
+                tabsContainer.style.flexDirection = 'row';
             }
 
             // Update DOM Texts
@@ -253,7 +253,7 @@
             document.getElementById('pump-status-label').innerText = t.pumpStatusLabel;
             document.getElementById('btn-start').innerText = t.btnStart;
             document.getElementById('btn-stop').innerText = t.btnStop;
-            document.getElementById('langBtn').innerText = t.langBtn;
+            document.getElementById('lang-btn').innerText = t.langBtn;
             
             // Dynamic State Texts
             document.getElementById('flow-status').innerText = isFlowing ? t.statusFlowing : t.statusStopped;
@@ -344,7 +344,10 @@
                     if(data.distance !== undefined) {
                         document.getElementById('distance-val').innerHTML = `${data.distance.toFixed(1)} <span class="text-lg font-normal text-slate-400" id="unit-cm">${t.unitCm}</span>`;
                         document.getElementById('last-update-level').innerText = new Date().toLocaleTimeString();
-                        const percent = Math.max(0, Math.min(100, (50 - data.distance) * 2)); 
+                        
+                        // Modified calculation based on a 20cm blind spot and 100cm tank depth
+                        // Percent = ((100 - distance) / 80) * 100, bounded between 0 and 100
+                        const percent = Math.max(0, Math.min(100, ((100 - data.distance) / 80) * 100)); 
                         document.getElementById('level-bar').style.width = percent + '%';
                     }
 
