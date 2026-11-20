@@ -2,8 +2,8 @@
 #include <PubSubClient.h>
 
 // WiFi Configuration
-const char* ssid = "Hashem's Phone";
-const char* password = "had207@2";
+const char* ssid = "Hashem_EXT 2.4G";
+const char* password = "csffb76673";
 
 // MQTT Configuration
 const char* mqtt_server = "broker.emqx.io";
@@ -92,6 +92,47 @@ boolean reconnect() {
   return false;
 }
 
+// Distance reading function with Median Filter to remove outlier readings
+float getFilteredDistance() {
+  const int numReadings = 5;
+  float readings[numReadings];
+  int validCount = 0;
+
+  for (int i = 0; i < numReadings; i++) {
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+
+    long duration = pulseIn(echoPin, HIGH, 30000);
+    if (duration > 0) {
+      float dist = duration * 0.034 / 2.0;
+      // تجاهل القراءات غير المنطقية (أكبر من 200 سم أو ضمن المنطقة العمياء أقل من 20 سم)
+      if (dist >= 20.0 && dist <= 200.0) {
+        readings[validCount++] = dist;
+      }
+    }
+    delay(35); // فاصل بسيط للسماح بتلاشي الصدى داخل الخزان
+  }
+
+  if (validCount == 0) return -1.0; // في حال فشل جميع القراءات
+
+  // ترتيب القراءات تصاعدياً (Bubble Sort)
+  for (int i = 0; i < validCount - 1; i++) {
+    for (int j = i + 1; j < validCount; j++) {
+      if (readings[j] < readings[i]) {
+        float temp = readings[i];
+        readings[i] = readings[j];
+        readings[j] = temp;
+      }
+    }
+  }
+
+  // إرجاع القيمة الوسطى (الوسيط)
+  return readings[validCount / 2];
+}
+
 void setup() {
   Serial.begin(9300);
 
@@ -155,23 +196,13 @@ void loop() {
     float pulseFrequency = pulsesInSample / elapsedTime;
     flowRate = pulseFrequency / calibrationFactor;
 
-    // Read ultrasonic distance
-    digitalWrite(trigPin, LOW);
-    delayMicroseconds(2);
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin, LOW);
+    // Read filtered ultrasonic distance (Median Filter)
+    float newDistance = getFilteredDistance();
 
-    long duration = pulseIn(echoPin, HIGH, 30000);
-
-    // Only accept non-zero ultrasonic readings.
-    if (duration > 0) {
-      float newDistance = duration * 0.034f / 2.0f;
-
-      if (newDistance > 0.0f) {
-        lastValidDistance = newDistance;
-        hasValidDistance = true;
-      }
+    // Only accept valid ultrasonic readings
+    if (newDistance > 0.0f) {
+      lastValidDistance = newDistance;
+      hasValidDistance = true;
     }
 
     // Do not send 0.00 before receiving the first valid measurement.
