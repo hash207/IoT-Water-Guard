@@ -18,7 +18,7 @@ db = SQLAlchemy(app)
 
 # Tank Calibration Constants (in cm)
 EMPTY_DISTANCE = 161.0  # Distance when tank is empty (0%)
-FULL_DISTANCE = 20.0    # Distance when tank is full (100% - sensor blind zone limit)
+FULL_DISTANCE = 22.0    # Distance when tank is full (100% - sensor blind zone limit)
 
 # Database Model
 class WaterRecord(db.Model):
