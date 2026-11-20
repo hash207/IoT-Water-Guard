@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 import paho.mqtt.client as mqtt
 import threading
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 app = Flask(__name__)
@@ -23,7 +23,7 @@ FULL_DISTANCE = 20.0    # Distance when tank is full (100% - sensor blind zone l
 # Database Model
 class WaterRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.now)
     distance = db.Column(db.Float, nullable=False)  # Stores calculated water level percentage
     flow_rate = db.Column(db.Float, nullable=False)
 
@@ -65,20 +65,43 @@ def mqtt_thread():
 def index():
     return render_template('dashboard.html')
 
-# API Route for Chart Data
+# API Route for Weekly Chart Data (Sunday to Saturday)
 @app.route('/api/history')
 def history():
-    # Fetch the last 50 records in chronological order
-    records = WaterRecord.query.order_by(WaterRecord.timestamp.desc()).limit(50).all()
-    records.reverse()
-    
-    data = [{
-        "time": r.timestamp.strftime("%H:%M:%S"),
-        "level_percent": r.distance,
-        "flow_rate": r.flow_rate
-    } for r in records]
-    
-    return jsonify(data)
+    # Calculate the start of the current week (Sunday at 00:00:00)
+    now = datetime.now()
+    days_since_sunday = (now.weekday() + 1) % 7
+    start_of_week = (now - timedelta(days=days_since_sunday)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+
+    # Fetch all records from Sunday 00:00:00 up to now
+    records = WaterRecord.query.filter(WaterRecord.timestamp >= start_of_week).all()
+
+    # Initialize buckets for the 7 days (0 = Sun, 1 = Mon, ..., 6 = Sat)
+    daily_levels = [[] for _ in range(7)]
+    daily_flows = [0.0 for _ in range(7)]
+
+    # Sampling interval in minutes (ESP8266 publishes every 5 seconds)
+    INTERVAL_MINUTES = 5.0 / 60.0
+
+    for r in records:
+        day_idx = (r.timestamp.weekday() + 1) % 7
+        daily_levels[day_idx].append(r.distance)
+        # Convert L/min rate over a 5-second window into Liters
+        daily_flows[day_idx] += r.flow_rate * INTERVAL_MINUTES
+
+    # Compute daily average level (%) and round total flow (Liters)
+    avg_levels = [
+        round(sum(vals) / len(vals), 1) if vals else 0.0
+        for vals in daily_levels
+    ]
+    total_flows = [round(flow, 1) for flow in daily_flows]
+
+    return jsonify({
+        "levels": avg_levels,
+        "flows": total_flows
+    })
 
 if __name__ == '__main__':
     # Create database tables if they do not exist

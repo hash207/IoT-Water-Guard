@@ -225,6 +225,9 @@
                 btnHist.classList.replace('bg-white/10', 'bg-white/20');
                 btnDash.classList.replace('border-white', 'border-transparent');
                 btnDash.classList.replace('bg-white/20', 'bg-white/10');
+
+                // Load fresh data from SQLite database
+                fetchWeeklyHistory();
             }
         }
 
@@ -276,13 +279,33 @@
         const levelCtx = document.getElementById('levelChart').getContext('2d');
         const flowCtx = document.getElementById('flowChart').getContext('2d');
 
+        // Fetch real weekly history from Flask API
+        async function fetchWeeklyHistory() {
+            try {
+                const response = await fetch('/api/history');
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const data = await response.json();
+                
+                // Update Water Level Chart
+                levelChartConfig.data.datasets[0].data = data.levels;
+                levelChartConfig.update();
+                
+                // Update Total Flow Chart
+                flowChartConfig.data.datasets[0].data = data.flows;
+                flowChartConfig.update();
+            } catch (error) {
+                console.error('Failed to fetch weekly history:', error);
+            }
+        }
+
         const levelChartConfig = new Chart(levelCtx, {
             type: 'line',
             data: {
                 labels: translations[currentLang].days,
                 datasets: [{
                     label: 'Water Level %',
-                    data: [40, 60, 55, 90, 85, 30, 70],
+                    data: [0, 0, 0, 0, 0, 0, 0],
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
                     fill: true,
@@ -298,7 +321,7 @@
                 labels: translations[currentLang].days,
                 datasets: [{
                     label: 'Total Flow (Liters)',
-                    data: [0, 1500, 0, 2200, 500, 0, 1800],
+                    data: [0, 0, 0, 0, 0, 0, 0],
                     backgroundColor: '#10b981',
                     borderRadius: 4
                 }]
